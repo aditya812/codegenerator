@@ -47,9 +47,9 @@ public class CodeGenerator {
 
 	private static Workbook mappingWorkbook;
 
-	private static String destinationPath = "C:\\Users\\addade\\Desktop\\Innovation_code_generator\\jhipster\\App1\\App2\\App9\\";
+	private static String destinationPath = "";
 
-	private static String inputFile = "C:\\Users\\addade\\Desktop\\Work\\Innovation\\input.json";
+	private static String inputFile = "";//"C:\\Users\\vmodhugu\\Desktop\\Innovation_code_generator\\InputJson.json"
 
 	private static String basePackageName = "com.app.sample";
 	
@@ -60,11 +60,11 @@ public class CodeGenerator {
 	}
 
 	public static void generateCode() throws Exception {
-		
-		NodeList<Statement> nodeList = ParseJSON.parseJson(inputFile);
+		JSONParser parser = new JSONParser();
+		JSONArray jsonArray = (JSONArray) parser.parse(new FileReader(inputFile));
+		NodeList<Statement> nodeList = iterateInputRequestAndGenerateCode(jsonArray);
 		
 		createInsuranceMapperClass(nodeList);
-		
 		createControllerClass();
 	}
 
@@ -102,6 +102,7 @@ public class CodeGenerator {
 					conditionExpr.addArgument(exp);
 				} else {
 					ifConditionValue = getCodeForBussinessField(setvalue, false);
+					ifConditionValue = insuranceClaim + "." + ifConditionValue;
 					conditionExpr.addArgument(new NameExpr(ifConditionValue));
 				}
 				ifStmt.setCondition(conditionExpr);
@@ -148,7 +149,7 @@ public class CodeGenerator {
 		return nodeList;
 	}
 
-	public static String getCodeForBussinessField(String bussinessField, boolean isSetterMethod) throws Exception {
+	private static String getCodeForBussinessField(String bussinessField, boolean isSetterMethod) throws Exception {
 		Sheet datatypeSheet = mappingWorkbook.getSheetAt(0);
 		Iterator<Row> iterator = datatypeSheet.iterator();
 		String hirerchyValue = "NotFound";
@@ -192,54 +193,53 @@ public class CodeGenerator {
 
 	public static void main(String[] args) throws Exception {
 		
-//		inputFile = args[0];
-//		destinationPath = args[1];
-//		destinationPath = destinationPath.endsWith("\\") ? destinationPath : destinationPath + "\\";
-//
-//		File yo_file = new File(destinationPath + ".yo-rc.json");
-//		File sample_file = new File(destinationPath + "sample.jh");
-//		new CodeGenerator();
-//
-//		// copy yo-ro file
-//		InputStream yo_file_stream = CodeGenerator.class.getClassLoader().getResourceAsStream(".yo-rc.json");
-//		copyFile(yo_file_stream, yo_file);
-//
-//		// copy sample.jh file
-//		InputStream sample_file_stream = CodeGenerator.class.getClassLoader().getResourceAsStream("sample.jh");
-//		copyFile(sample_file_stream, sample_file);
-//
-//		ProcessBuilder builder1 = new ProcessBuilder("cmd.exe", "/c",
-//				"cd " + destinationPath + " && jhipster import-jdl sample.jh");
-//		System.out.println(
-//				"====================Execution of entity java source files creation from entityObjects.jh started...====================");
-//		executeCommands(builder1);
-//		System.out.println("====================Entity source files creation completed!====================");
-//
-//		ProcessBuilder builder2 = new ProcessBuilder("cmd.exe", "/c", "cd " + destinationPath + " && jhipster");
-//		System.out.println(
-//				"====================Execution of Project skelton source files creation from .yo-rc.json started...====================");
-//		executeCommands(builder2);
-//		System.out.println("====================Project skelelton source files creation completed!====================");
-//
-//		System.out.println(
-//				"====================Execution of generating the java mapping source files started...====================");
-//		generateCode();
-//		System.out
-//				.println("====================Generation of java mapping source files completed !====================");
-//
-//		ProcessBuilder builder3 = new ProcessBuilder("cmd.exe", "/c",
-//				"cd " + destinationPath + " && mvn clean install -DskipTests");
-//		System.out.println(
-//				"====================Execution for trigerring the 'Maven build' to build the generated project sources started...====================");
-//		executeCommands(builder3);
-//		System.out.println("'Mavnen Build' execution completed!");
-//
-//		ProcessBuilder builder4 = new ProcessBuilder("cmd.exe", "/c",
-//				"cd " + destinationPath + " && java -jar target\\sample-0.0.1-SNAPSHOT.war");
-//		System.out.println(
-//				"====================Execution to start the java microservice has started...====================");
-//		executeCommands(builder4);
+		inputFile = args[0];
+		destinationPath = args[1];
+		destinationPath = destinationPath.endsWith("\\") ? destinationPath : destinationPath + "\\";
+
+		File yo_file = new File(destinationPath + ".yo-rc.json");
+		File sample_file = new File(destinationPath + "sample.jh");
+		new CodeGenerator();
+
+		// copy yo-ro file
+		InputStream yo_file_stream = CodeGenerator.class.getClassLoader().getResourceAsStream(".yo-rc.json");
+		copyFile(yo_file_stream, yo_file);
+
+		// copy sample.jh file
+		InputStream sample_file_stream = CodeGenerator.class.getClassLoader().getResourceAsStream("sample.jh");
+		copyFile(sample_file_stream, sample_file);
+
+		ProcessBuilder builder1 = new ProcessBuilder("cmd.exe", "/c",
+				"cd " + destinationPath + " && jhipster import-jdl sample.jh");
+		System.out.println(
+				"====================Execution of entity java source files creation from entityObjects.jh started...====================");
+		executeCommands(builder1);
+		System.out.println("====================Entity source files creation completed!====================");
+
+		ProcessBuilder builder2 = new ProcessBuilder("cmd.exe", "/c", "cd " + destinationPath + " && jhipster");
+		System.out.println(
+				"====================Execution of Project skelton source files creation from .yo-rc.json started...====================");
+		executeCommands(builder2);
+		System.out.println("====================Project slelton source files creation completed!====================");
+
+		System.out.println(
+				"====================Execution of generating the java mapping source files started...====================");
 		generateCode();
+		System.out
+				.println("====================Generation of java mapping source files completed !====================");
+
+		ProcessBuilder builder3 = new ProcessBuilder("cmd.exe", "/c",
+				"cd " + destinationPath + " && mvn clean install -DskipTests");
+		System.out.println(
+				"====================Execution for trigerring the 'Maven build' to build the generated project sources started...====================");
+		executeCommands(builder3);
+		System.out.println("'Mavnen Build' execution completed!");
+
+		ProcessBuilder builder4 = new ProcessBuilder("cmd.exe", "/c",
+				"cd " + destinationPath + " && java -jar target\\sample-0.0.1-SNAPSHOT.war");
+		System.out.println(
+				"====================Execution to start the java microservice has started...====================");
+		executeCommands(builder4);
 
 	}
 
