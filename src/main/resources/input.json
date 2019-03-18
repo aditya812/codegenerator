@@ -1,0 +1,63 @@
+[  
+   {  
+      "ruleId":"1001",
+      "conditions":{  
+         "cond":[  
+            {  
+               "operatorValue":"=",
+               "ifValue":"(Claim) Total Allowed Amount",
+               "setValue":"0",
+               "isStatic": true
+            },
+            {  
+               "operatorValue":"=",
+               "ifValue":"(Claim) Total Allowed Amount",
+               "setValue":"0",
+               "isStatic": true
+            }
+         ],
+         "conditionOp":"and"
+      },
+      "actions":[  
+         {  
+            "setValue":"(Claim) Ineligible Amount",
+            "toValue":"0"
+         },
+         {  
+            "setValue":"(Claim) Total Billed Amount",
+            "toValue":"0"
+         },
+         {  
+            "setValue":"(Claim) Corporate Entity Code",
+            "toValue":"0"
+         }
+      ]
+   },
+   {  
+      "ruleId":"1002",
+      "conditions":{  
+         "cond":[  
+            {  
+               "operatorValue":"=",
+               "ifValue":"(Claim) Total Allowed Amount",
+               "setValue":"0",
+               "isStatic": true
+            }         ],
+         "conditionOp":""
+      },
+      "actions":[  
+         {  
+            "setValue":"(Claim) Ineligible Amount",
+            "toValue":"xx"
+         },
+         {  
+            "setValue":"(Claim) Total Billed Amount",
+            "toValue":""
+         },
+         {  
+            "setValue":"(Claim) Corporate Entity Code",
+            "toValue":""
+         }
+      ]
+   }
+]
