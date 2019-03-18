@@ -1,29 +1,39 @@
-package com.yourorganization.maven_sample;
+package com.deloitte.code.generator;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.util.Iterator;
+import java.util.List;
 
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
 
-import com.app.sample.domain.InsuranceClaim;
+import com.github.javaparser.JavaParser;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.Modifier;
 import com.github.javaparser.ast.NodeList;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
+import com.github.javaparser.ast.body.TypeDeclaration;
+import com.github.javaparser.ast.expr.Expression;
 import com.github.javaparser.ast.expr.FieldAccessExpr;
 import com.github.javaparser.ast.expr.MethodCallExpr;
 import com.github.javaparser.ast.expr.NameExpr;
+import com.github.javaparser.ast.expr.SingleMemberAnnotationExpr;
 import com.github.javaparser.ast.expr.StringLiteralExpr;
 import com.github.javaparser.ast.stmt.BlockStmt;
 import com.github.javaparser.ast.stmt.ExpressionStmt;
@@ -34,203 +44,322 @@ import com.github.javaparser.ast.stmt.Statement;
  * Some code that uses JavaParser.
  */
 public class CodeGenerator {
-	
+
 	private static Workbook mappingWorkbook;
+
+	private static String destinationPath = "";
+
+	private static String inputFile = "";//"C:\\Users\\vmodhugu\\Desktop\\Innovation_code_generator\\InputJson.json"
+
+	private static String basePackageName = "com.app.sample";
 	
-	private static String destinationPath = "C:\\Users\\vmodhugu\\Desktop\\Innovation_code_generator\\jhipster\\App1\\App2\\App4\\";
-	
-	public CodeGenerator()throws Exception {
-		mappingWorkbook = new XSSFWorkbook(new FileInputStream(CodeGenerator.class.getClassLoader().getResource("mapper.xlsx").getFile()));
+	private static Row filteredMappingSheetRow = null;
+
+	public CodeGenerator() throws Exception {
+		mappingWorkbook = new XSSFWorkbook(getClass().getClassLoader().getResourceAsStream("mapper.xlsx"));
 	}
-	
+
 	public static void generateCode() throws Exception {
-		Workbook workbook = new XSSFWorkbook(new FileInputStream(CodeGenerator.class.getClassLoader().getResource("Input.xlsx").getFile()));
-        Sheet datatypeSheet = workbook.getSheetAt(0);
-        Iterator<Row> iterator = datatypeSheet.iterator();
-        NodeList<Statement> nodeList = iterateInputRequestAndGenerateCode(iterator);
-        workbook.close();
-        createClassAndInsertMethodBody(nodeList);
-        
-	}
-	
-	private static NodeList<Statement> iterateInputRequestAndGenerateCode(Iterator<Row> iterator)throws Exception{
+		JSONParser parser = new JSONParser();
+		JSONArray jsonArray = (JSONArray) parser.parse(new FileReader(inputFile));
+		NodeList<Statement> nodeList = iterateInputRequestAndGenerateCode(jsonArray);
 		
+		createInsuranceMapperClass(nodeList);
+		createControllerClass();
+	}
+
+	private static NodeList<Statement> iterateInputRequestAndGenerateCode(JSONArray jsonArray) throws Exception {
+
 		NodeList<Statement> nodeList = new NodeList<>();
-        //to skip the first header row
-        iterator.next();
-        while (iterator.hasNext()) {
-            Row currentRow = iterator.next();
-            if(currentRow.getCell(0) == null || currentRow.getCell(0).toString().trim().equals(""))
-            	break;
-            
-            IfStmt ifStmt = new IfStmt();
-            
-            String ifConditionField = currentRow.getCell(1).toString();
-            String codeToAccessField = getCodeForBussinessField(ifConditionField, false);
-            
-            NameExpr insuranceClaim = new NameExpr("insuranceClaim");
-            FieldAccessExpr ifField = new FieldAccessExpr(insuranceClaim, codeToAccessField);
-            if(currentRow.getCell(2).toString().equals("equals")) {
-            	MethodCallExpr conditionExpr = new MethodCallExpr(ifField, "equals");
-            	String ifConditionValue = "";
-            	//field is static
-            	if(currentRow.getCell(3) != null && !currentRow.getCell(3).toString().trim().equals("")) {
-            		ifConditionValue = currentRow.getCell(3).toString();
-            		conditionExpr.addArgument(new StringLiteralExpr(ifConditionValue));
-            	}else {
-            		ifConditionValue = getCodeForBussinessField(currentRow.getCell(4).toString(), false);
-            		conditionExpr.addArgument(new NameExpr(ifConditionValue));
-            	}
-            	ifStmt.setCondition(conditionExpr);
-            }
-            
-            String thenFieldName = currentRow.getCell(6).toString();
-            String thenFieldValue = "";
-            String thenFieldSetterCode = getCodeForBussinessField(thenFieldName, true);
-            FieldAccessExpr thenField = new FieldAccessExpr(insuranceClaim, thenFieldSetterCode);
-//            String[] fields = thenFieldSetterCode.split("\\.");
-            MethodCallExpr thenSetterExpr = new MethodCallExpr();
-            thenSetterExpr.setName(thenField.toString());
-            if(currentRow.getCell(8) != null && !currentRow.getCell(8).toString().trim().equals("")) {
-            	thenFieldValue = currentRow.getCell(8).toString();
-            	thenSetterExpr.addArgument(new StringLiteralExpr(thenFieldValue));
-        	}else {
-        		thenFieldValue = getCodeForBussinessField(currentRow.getCell(9).toString(), false);
-        		thenSetterExpr.addArgument(new NameExpr(thenFieldValue));
-        	}
-            BlockStmt thenBlock = new BlockStmt();
-            NodeList<Statement> thenBlockStatements = new NodeList<>();
-            thenBlockStatements.add(new ExpressionStmt(thenSetterExpr));
-            thenBlock.setStatements(thenBlockStatements);
-            ifStmt.setThenStmt(thenBlock);
-            
-            nodeList.add(ifStmt);
-        }
-        nodeList.add(new ExpressionStmt(new NameExpr("return insuranceClaim")));
-        return nodeList;
+		
+		for(Object obj : jsonArray) {
+			JSONObject jsonObj = (JSONObject) obj;
+			JSONObject conditions = (JSONObject) jsonObj.get("conditions");
+			JSONObject cond1 = (JSONObject) ((JSONArray) conditions.get("cond")).get(0);
+			
+			String operatorValue = cond1.get("operatorValue").toString();
+			String ifValue = cond1.get("ifValue").toString();
+			String setvalue = cond1.get("setValue").toString();
+			Boolean isStatic = Boolean.valueOf(cond1.get("isStatic").toString());
+			
+			IfStmt ifStmt = new IfStmt();
+
+			String codeToAccessField = getCodeForBussinessField(ifValue, false);
+
+			NameExpr insuranceClaim = new NameExpr("insuranceClaim");
+			FieldAccessExpr ifField = new FieldAccessExpr(insuranceClaim, codeToAccessField);
+			if (operatorValue.trim().equals("=")) {
+				MethodCallExpr conditionExpr = new MethodCallExpr(ifField, "equals");
+				String ifConditionValue = "";
+				// field is static
+				if (isStatic) {
+					ifConditionValue = setvalue;
+					Expression exp = null;
+					if(filteredMappingSheetRow.getCell(2).toString().equalsIgnoreCase("String"))
+						exp = new StringLiteralExpr(ifConditionValue);
+					else
+						exp = new NameExpr(ifConditionValue);
+					conditionExpr.addArgument(exp);
+				} else {
+					ifConditionValue = getCodeForBussinessField(setvalue, false);
+					conditionExpr.addArgument(new NameExpr(ifConditionValue));
+				}
+				ifStmt.setCondition(conditionExpr);
+			}
+			
+			NodeList<Statement> thenBlockStatements = new NodeList<>();
+			JSONArray thenArray = (JSONArray) jsonObj.get("actions");
+			for(Object thenObj : thenArray) {
+				JSONObject setObj = (JSONObject) thenObj;
+				String thenFieldName = (String) setObj.get("setValue");
+				String thenSet = (String) setObj.get("toValue");
+				Boolean isSetterStatic = (Boolean) setObj.get("isStatic");
+				
+				String thenFieldValue = "";
+				String thenFieldSetterCode = getCodeForBussinessField(thenFieldName, true);
+				FieldAccessExpr thenField = new FieldAccessExpr(insuranceClaim, thenFieldSetterCode);
+				MethodCallExpr thenSetterExpr = new MethodCallExpr();
+				thenSetterExpr.setName(thenField.toString());
+				if (isSetterStatic) {
+					thenFieldValue = thenSet;
+					Expression exp = null;
+					if(filteredMappingSheetRow.getCell(2).toString().equalsIgnoreCase("String"))
+						exp = new StringLiteralExpr(thenFieldValue);
+					else
+						exp = new NameExpr(thenFieldValue);
+					thenSetterExpr.addArgument(exp);
+				} else {
+					thenFieldValue = getCodeForBussinessField(thenSet, false);
+					thenFieldValue = insuranceClaim + "." + thenFieldValue;
+					thenSetterExpr.addArgument(new NameExpr(thenFieldValue));
+				}
+				
+				thenBlockStatements.add(new ExpressionStmt(thenSetterExpr));
+			}
+
+			BlockStmt thenBlock = new BlockStmt();
+			thenBlock.setStatements(thenBlockStatements);
+			ifStmt.setThenStmt(thenBlock);
+
+			nodeList.add(ifStmt);
+		}
+		nodeList.add(new ExpressionStmt(new NameExpr("return insuranceClaim")));
+		System.out.println(nodeList);
+		return nodeList;
 	}
-	
-	private static String getCodeForBussinessField(String bussinessField, boolean isSetterMethod)throws Exception {
+
+	private static String getCodeForBussinessField(String bussinessField, boolean isSetterMethod) throws Exception {
 		Sheet datatypeSheet = mappingWorkbook.getSheetAt(0);
-        Iterator<Row> iterator = datatypeSheet.iterator();
-        String hirerchyValue = "NotFound";
-        while (iterator.hasNext()) {
-            Row currentRow = iterator.next();
-            if(currentRow.getCell(0).toString().contains(bussinessField)) {
-            	hirerchyValue = currentRow.getCell(1).toString();
-            	break;
-            }
-            
-        }
-        if(hirerchyValue.equals("NotFound")) 
-        	throw new Exception("'"+bussinessField + "' Not found in the mapping");
-        if(!isSetterMethod)
-        	return getJavaCodeToAccessField(hirerchyValue);
-        return getJavaCodeToSetField(hirerchyValue);
+		Iterator<Row> iterator = datatypeSheet.iterator();
+		String hirerchyValue = "NotFound";
+		while (iterator.hasNext()) {
+			Row currentRow = iterator.next();
+			if (currentRow.getCell(0).toString().contains(bussinessField)) {
+				filteredMappingSheetRow = currentRow;
+				hirerchyValue = currentRow.getCell(1).toString();
+				break;
+			}
+
+		}
+		if (hirerchyValue.equals("NotFound"))
+			throw new Exception("'" + bussinessField + "' Not found in the mapping");
+		if (!isSetterMethod)
+			return getJavaCodeToAccessField(hirerchyValue);
+		return getJavaCodeToSetField(hirerchyValue);
 	}
-	
+
 	private static String getJavaCodeToAccessField(String fieldHirerchy) {
 		StringBuilder statementCode = new StringBuilder();
 		String[] fields = fieldHirerchy.split("\\.");
-		for(int i=1; i < fields.length; i++) {
-			statementCode.append(".get"+fields[i].substring(0, 1).toUpperCase() + fields[i].substring(1)+"()");
+		for (int i = 1; i < fields.length; i++) {
+			statementCode.append(".get" + fields[i].substring(0, 1).toUpperCase() + fields[i].substring(1) + "()");
 		}
 		return statementCode.toString().substring(1);
 	}
-	
+
 	private static String getJavaCodeToSetField(String fieldHirerchy) {
 		StringBuilder statementCode = new StringBuilder();
 		String[] fields = fieldHirerchy.split("\\.");
-		for(int i=1; i < fields.length; i++) {
-			if(i < fields.length - 1)
-				statementCode.append(".get"+fields[i].substring(0, 1).toUpperCase() + fields[i].substring(1)+"()");
-			else 
-				statementCode.append(".set"+fields[i].substring(0, 1).toUpperCase() + fields[i].substring(1));
+		for (int i = 1; i < fields.length; i++) {
+			if (i < fields.length - 1)
+				statementCode.append(".get" + fields[i].substring(0, 1).toUpperCase() + fields[i].substring(1) + "()");
+			else
+				statementCode.append(".set" + fields[i].substring(0, 1).toUpperCase() + fields[i].substring(1));
 		}
-		
+
 		return statementCode.toString().substring(1);
 	}
-	
+
 	public static void main(String[] args) throws Exception {
-//		cd C:\Users\addade\Desktop\Work\Innovation\sample4
-//
-		File file = new File(destinationPath+".yo-rc.json");
-		File yo_file = new File(CodeGenerator.class.getClassLoader().getResource(".yo-rc.json").getFile());
-		copyFile(yo_file, file);
 		
-//		Process p1 = Runtime.getRuntime().exec("copy "+yo_file+" .", null, new File(destinationPath));
-//		p1.waitFor();
-		Process p2 = Runtime.getRuntime().exec("cmd /c start /wait jhipster", null, new File(destinationPath));
-		
-		p2.waitFor(); 
-		/*CodeGenerator codeGenerator = */new CodeGenerator();
+		inputFile = args[0];
+		destinationPath = args[1];
+		destinationPath = destinationPath.endsWith("\\") ? destinationPath : destinationPath + "\\";
+
+		File yo_file = new File(destinationPath + ".yo-rc.json");
+		File sample_file = new File(destinationPath + "sample.jh");
+		new CodeGenerator();
+
+		// copy yo-ro file
+		InputStream yo_file_stream = CodeGenerator.class.getClassLoader().getResourceAsStream(".yo-rc.json");
+		copyFile(yo_file_stream, yo_file);
+
+		// copy sample.jh file
+		InputStream sample_file_stream = CodeGenerator.class.getClassLoader().getResourceAsStream("sample.jh");
+		copyFile(sample_file_stream, sample_file);
+
+		ProcessBuilder builder1 = new ProcessBuilder("cmd.exe", "/c",
+				"cd " + destinationPath + " && jhipster import-jdl sample.jh");
+		System.out.println(
+				"====================Execution of entity java source files creation from entityObjects.jh started...====================");
+		executeCommands(builder1);
+		System.out.println("====================Entity source files creation completed!====================");
+
+		ProcessBuilder builder2 = new ProcessBuilder("cmd.exe", "/c", "cd " + destinationPath + " && jhipster");
+		System.out.println(
+				"====================Execution of Project skelton source files creation from .yo-rc.json started...====================");
+		executeCommands(builder2);
+		System.out.println("====================Project slelton source files creation completed!====================");
+
+		System.out.println(
+				"====================Execution of generating the java mapping source files started...====================");
 		generateCode();
-		Process p3 = Runtime.getRuntime().exec("cmd /c start /wait set CLASSPATH=C:\\Users\\vmodhugu\\Documents\\My Received Files\\claim.jar & mvn clean install", null, new File(destinationPath));
-		p3.waitFor();
-		Process p4 = Runtime.getRuntime().exec("cmd /c start /wait java -jar target\\PricingMapping.war", null, new File(destinationPath));
-		p4.waitFor();
-		
+		System.out
+				.println("====================Generation of java mapping source files completed !====================");
+
+		ProcessBuilder builder3 = new ProcessBuilder("cmd.exe", "/c",
+				"cd " + destinationPath + " && mvn clean install -DskipTests");
+		System.out.println(
+				"====================Execution for trigerring the 'Maven build' to build the generated project sources started...====================");
+		executeCommands(builder3);
+		System.out.println("'Mavnen Build' execution completed!");
+
+		ProcessBuilder builder4 = new ProcessBuilder("cmd.exe", "/c",
+				"cd " + destinationPath + " && java -jar target\\sample-0.0.1-SNAPSHOT.war");
+		System.out.println(
+				"====================Execution to start the java microservice has started...====================");
+		executeCommands(builder4);
+
 	}
-    
-	private static void createClassAndInsertMethodBody(NodeList<Statement> methodBodyStatements)throws Exception {
+
+	private static void executeCommands(ProcessBuilder builder) throws Exception {
+		builder.redirectErrorStream(true);
+		Process p = builder.start();
+		BufferedReader r = new BufferedReader(new InputStreamReader(p.getInputStream()));
+		String line;
+		while (true) {
+			line = r.readLine();
+			if (line == null) {
+				break;
+			}
+			System.out.println(line);
+		}
+		p.waitFor();
+	}
+
+	private static void createInsuranceMapperClass(NodeList<Statement> methodBodyStatements) throws Exception {
 		CompilationUnit cu = new CompilationUnit();
-		String packageName = "com.app.sample.service";
+
 		String className = "InsuranceClaimMapper";
-        cu.setPackageDeclaration(packageName);
-        ClassOrInterfaceDeclaration type = cu.addClass("InsuranceClaimMapper");
+		cu.setPackageDeclaration(basePackageName + ".service");
+		ClassOrInterfaceDeclaration type = cu.addClass(className);
 
-        MethodDeclaration mapInsuranceClaim = type.addMethod("mapInsuranceClaim", Modifier.Keyword.PUBLIC);
+		MethodDeclaration mapInsuranceClaim = type.addMethod("mapInsuranceClaim", Modifier.Keyword.PUBLIC);
 
-        mapInsuranceClaim.addAndGetParameter(InsuranceClaim.class, "insuranceClaim");
-        mapInsuranceClaim.setType(InsuranceClaim.class);
-        
-        mapInsuranceClaim.setBody(new BlockStmt(methodBodyStatements));
-        
-        PrintWriter writer = new PrintWriter(destinationPath+"src\\main\\java\\"+packageName.replaceAll("\\.", "\\\\")+"\\"+className+".java");
-        writer.print(cu.toString());
-        writer.close();
+		cu.addImport("com.app.sample.domain.InsuranceClaim");
+		mapInsuranceClaim.addParameter("InsuranceClaim", "insuranceClaim");
+		// mapInsuranceClaim.addAndGetParameter(InsuranceClaim.class, "insuranceClaim");
+		mapInsuranceClaim.setType("InsuranceClaim");
+		// mapInsuranceClaim.setType(InsuranceClaim.class);
+
+		mapInsuranceClaim.setBody(new BlockStmt(methodBodyStatements));
+
+		PrintWriter writer = new PrintWriter(destinationPath + "src\\main\\java\\"
+				+ basePackageName.replaceAll("\\.", "\\\\") + "\\service\\" + className + ".java");
+		writer.print(cu.toString());
+		writer.close();
+		System.out.println("Generated the code for class :"+className);
 	}
-    
-	public static void copyFile(File source, File destination)throws Exception {
-//		if(!destination.exists())
-//			destination.mkdirs();
-//		
 
-		createFile(destination);
+	private static void createControllerClass() throws Exception {
+
+		String controllerClassSourcePath = destinationPath + "src\\main\\java\\"
+				+ basePackageName.replaceAll("\\.", "\\\\") + "\\web\\rest\\InsuranceClaimResource.java";
+		FileInputStream in = new FileInputStream(controllerClassSourcePath);
+
+		JavaParser parser = new JavaParser();
+		CompilationUnit cu = parser.parse(in).getResult().get();
+		MethodDeclaration method = getMethodByName(cu, "updateInsuranceClaim");
+		BlockStmt methodBody = method.getBody().get();
+		NodeList<Statement> bodyStatements = new NodeList<>();
+
+		cu.addImport("com.app.sample.service.InsuranceClaimMapper");
+		Statement stmt1 = parser.parseStatement("InsuranceClaimMapper mapper = new InsuranceClaimMapper();").getResult()
+				.get();
+		Statement stmt3 = parser
+				.parseStatement(
+						"return ResponseEntity.ok().headers(null).body(mapper.mapInsuranceClaim( insuranceClaim));")
+				.getResult().get();
+		bodyStatements.add(stmt1);
+
+//		cu.getTypes().stream().filter(type -> type.getAnnotationByName("RequestMapping").isPresent()).findFirst().get()
+//				.remove();
+		bodyStatements.add(stmt3);
+		methodBody.setStatements(bodyStatements);
+		cu.toString();
+
+		PrintWriter writer = new PrintWriter(controllerClassSourcePath);
+		writer.print(cu.toString());
+		writer.close();
+		System.out.println("Generated the code for REST endpoint in class :InsuranceClaimResource");
+	}
+
+	private static MethodDeclaration getMethodByName(CompilationUnit cu, String methodName) {
+
+		List<TypeDeclaration<?>> nodeList = cu.getTypes();
 		
-		InputStream inStream = null;
+		
+		for(TypeDeclaration<?> type : nodeList) {
+//			temp fix to remove the security annotation
+			type.getAnnotationByName("RequestMapping").ifPresent(c -> { ((SingleMemberAnnotationExpr) c).remove();});
+			List<MethodDeclaration> list = type.getMethodsByName(methodName);
+			for(Object bd : list) {
+				if(bd instanceof MethodDeclaration && ((MethodDeclaration) bd).getName().toString().equals(methodName)) 
+					return (MethodDeclaration)bd;
+			}
+		}
+		
+		return null;
+	}
+
+	public static void copyFile(InputStream source, File destination) throws Exception {
+
+		if (!destination.exists()) {
+			destination.getParentFile().mkdirs();
+			new FileWriter(destination);
+		}
+
 		OutputStream outStream = null;
 
 		try {
 
-			inStream = new FileInputStream(source);
 			outStream = new FileOutputStream(destination);
 
 			byte[] buffer = new byte[1024];
 
 			int length;
-			// copy the file content in bytes
-			while ((length = inStream.read(buffer)) > 0) {
+			while ((length = source.read(buffer)) > 0) {
 
 				outStream.write(buffer, 0, length);
 
 			}
 
-			inStream.close();
+			source.close();
 			outStream.close();
-
-			System.out.println("File is copied successful!");
 
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
 	}
-	
-	public static void createFile(File file) throws Exception{
-		
-	        if (!file.exists()) {
-	        	file.getParentFile().mkdirs();
-	        	FileWriter writer = new FileWriter(file);
-	        } 
-	}
+
 }
