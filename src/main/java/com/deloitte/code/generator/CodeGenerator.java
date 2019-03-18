@@ -60,9 +60,7 @@ public class CodeGenerator {
 	}
 
 	public static void generateCode() throws Exception {
-		JSONParser parser = new JSONParser();
-		JSONArray jsonArray = (JSONArray) parser.parse(new FileReader(inputFile));
-		NodeList<Statement> nodeList = iterateInputRequestAndGenerateCode(jsonArray);
+		NodeList<Statement> nodeList = ParseJSON.parseJson(inputFile);
 		
 		createInsuranceMapperClass(nodeList);
 		createControllerClass();
@@ -149,7 +147,7 @@ public class CodeGenerator {
 		return nodeList;
 	}
 
-	private static String getCodeForBussinessField(String bussinessField, boolean isSetterMethod) throws Exception {
+	public static String getCodeForBussinessField(String bussinessField, boolean isSetterMethod) throws Exception {
 		Sheet datatypeSheet = mappingWorkbook.getSheetAt(0);
 		Iterator<Row> iterator = datatypeSheet.iterator();
 		String hirerchyValue = "NotFound";
