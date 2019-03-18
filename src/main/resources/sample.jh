@@ -1,0 +1,24 @@
+entity InsuranceClaim{
+	entityCode String
+}
+
+entity Mediclaim{
+	claimCode String
+}
+
+entity ClaimHeader{
+	claimType String,
+	corporateEntiyCode String,
+	iparTransmissionRule String,
+	discountType String,
+	memberId String
+	
+}
+
+relationship OneToOne {
+	Mediclaim{claimHeader} to ClaimHeader
+}
+
+relationship OneToOne {
+	InsuranceClaim{mediclaim} to Mediclaim
+}
