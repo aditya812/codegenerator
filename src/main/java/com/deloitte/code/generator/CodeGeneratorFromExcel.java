@@ -83,17 +83,17 @@ public class CodeGeneratorFromExcel {
 		   }*/
 		JSONParser parser = new JSONParser();
 		JSONArray jsonArray = (JSONArray) parser.parse(new FileReader("C:\\Users\\vmodhugu\\Desktop\\Innovation_code_generator\\InputJson.json"));
-		for(Object obj : jsonArray) {
-			JSONObject jsonObj = (JSONObject) obj;
-			JSONObject conditions = (JSONObject) jsonObj.get("conditions");
-			JSONObject cond1 = (JSONObject) ((JSONArray) conditions.get("cond")).get(0);
-			String operatorValue = cond1.get("operatorValue").toString();
-			String ifValue = cond1.get("ifValue").toString();
-			String setvalue = cond1.get("setvalue").toString();
-			Boolean isStatic = Boolean.valueOf(cond1.get("isStatic").toString());
-			
-			
-		}
+//		for(Object obj : jsonArray) {
+//			JSONObject jsonObj = (JSONObject) obj;
+//			JSONObject conditions = (JSONObject) jsonObj.get("conditions");
+//			JSONObject cond1 = (JSONObject) ((JSONArray) conditions.get("cond")).get(0);
+//			String operatorValue = cond1.get("operatorValue").toString();
+//			String ifValue = cond1.get("ifValue").toString();
+//			String setvalue = cond1.get("setvalue").toString();
+//			Boolean isStatic = Boolean.valueOf(cond1.get("isStatic").toString());
+//			
+//			
+//		}
 		
 		
 		workbook.close();
