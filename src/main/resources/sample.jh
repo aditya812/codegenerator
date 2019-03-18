@@ -8,11 +8,15 @@ entity Mediclaim{
 
 entity ClaimHeader{
 	claimType String,
-	corporateEntiyCode String,
+	corporateEntityCode String,
 	iparTransmissionRule String,
 	discountType String,
-	memberId String
-	
+	totalAllowedAmount Double,
+	ineligibleAmount Double,
+	totalBilledAmount Double,
+	eligibleAmount Double,
+	ineligibleReasonCode String,
+	state String
 }
 
 relationship OneToOne {
