@@ -87,8 +87,12 @@ public class ParseJSON {
             
             // get the operator with which we want to check with the value
             MethodCallExpr conditionExpr = new MethodCallExpr(ifField, getOperatorMap().get(condition.getOperatorValue()));
-            if(condition.isStatic())
-            	conditionExpr.addArgument(new StringLiteralExpr(condition.getSetValue()));
+            if(condition.isStatic()) {
+            	if(CodeGenerator.filteredMappingSheetRow.getCell(2).toString().equalsIgnoreCase("String"))
+            		conditionExpr.addArgument(new StringLiteralExpr(condition.getSetValue()));
+            	else
+            		conditionExpr.addArgument(new NameExpr(condition.getSetValue()));
+            }
             else
             	conditionExpr.addArgument(new NameExpr(insuranceClaim + "." +CodeGenerator.getCodeForBussinessField(condition.getSetValue(), false)));
             
@@ -121,8 +125,12 @@ public class ParseJSON {
 			MethodCallExpr thenSetterExpr = new MethodCallExpr();
             thenSetterExpr.setName(thenField.toString());
             boolean isStatic = (Boolean)thenObject.get("isStatic");
-            if(isStatic)
-            	thenSetterExpr.addArgument(new StringLiteralExpr((String)thenObject.get("toValue")));
+            if(isStatic) {
+            	if(CodeGenerator.filteredMappingSheetRow.getCell(2).toString().equalsIgnoreCase("String"))
+            		thenSetterExpr.addArgument(new StringLiteralExpr((String)thenObject.get("toValue")));
+            	else
+            		thenSetterExpr.addArgument(new NameExpr((String)thenObject.get("toValue")));
+            }
             else {
             	thenSetterExpr.addArgument(new NameExpr(insuranceClaim + "." + CodeGenerator.getCodeForBussinessField((String)thenObject.get("toValue"), false)));
             }

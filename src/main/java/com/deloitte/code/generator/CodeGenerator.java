@@ -53,7 +53,7 @@ public class CodeGenerator {
 
 	private static String basePackageName = "com.app.sample";
 	
-	private static Row filteredMappingSheetRow = null;
+	public static Row filteredMappingSheetRow = null;
 
 	public CodeGenerator() throws Exception {
 		mappingWorkbook = new XSSFWorkbook(getClass().getClassLoader().getResourceAsStream("mapper.xlsx"));
